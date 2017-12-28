@@ -3,5 +3,4 @@ target
 .vscode-test/**
 out/test/**
 test/**
-src/**
 Cargo.lock
