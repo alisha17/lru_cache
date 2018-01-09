@@ -1,7 +1,6 @@
 use std::ptr;
 use std::fmt;
 use std::fmt::Debug;
-use std::fmt::Display;
 
 fn main(){
     let mut list = List::new();
@@ -67,10 +66,15 @@ impl<T> List<T> where T: Debug {
     
     pub fn cut(&mut self, elem:T) {  
        let mut current = &self.head;
+       let mut tail = &self.tail;
     
        while current.is_some() {
-           print!("{:?}", current);
-           current = &current.unwrap().next;
+           current = &current.as_ref().unwrap().next;
+
+           match &current.as_ref().elem {
+             Some(elem) => println!("{:?}", elem),
+             None => {},
+           }
        } 
  
     }     
