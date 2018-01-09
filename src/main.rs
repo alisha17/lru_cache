@@ -1,29 +1,82 @@
-use std::collections::btree_map;
+use std::ptr;
+use std::fmt;
+use std::fmt::Debug;
+use std::fmt::Display;
 
-pub struct LruCache {
-    map: btree_map<i64, String>,
-    max_size: usize,
+fn main(){
+    let mut list = List::new();
+
+    list.push(2);
+    list.push(3);
+    list.push(4);
+
+    list.cut(4);
 }
 
-impl LruCache {
-    pub fn new(capacity: usize) -> LruCache {
-         LruCache {
-            map: btree_map::new(),
-            max_size: capacity,
-        }
-    }
+type Link<T> = Option<Box<Node<T>>>;
 
-    pub fn insert(&mut self, k: i64, v: String) -> Option<String> {
-        let old_val = self.map.insert(k, v);
-        if self.len() > self.capacity() {
-            self.remove_lru();
-        }
-        old_val
-    }
-
-    // pub fn remove_lru() -> 
-
+#[derive(Debug)]
+pub struct List<T> {
+    head: Link<T>,
+    tail: *mut Node<T>,
 }
+
+#[derive(Debug)]
+struct Node<T> {
+    elem: T,
+    next: Link<T>,
+}
+
+impl<T> List<T> where T: Debug {
+    pub fn new() -> Self {
+        List { head: None, tail: ptr::null_mut() }
+    }
+
+    pub fn push(&mut self, elem: T) {
+        let mut new_tail = Box::new(Node {
+            elem: elem,
+            next: None,
+        });
+
+        let raw_tail: *mut _ = &mut *new_tail;
+
+        if !self.tail.is_null() {
+            unsafe {
+                (*self.tail).next = Some(new_tail);
+            }
+        } else {
+            self.head = Some(new_tail);
+        }
+
+        self.tail = raw_tail;
+    }
+
+    pub fn pop(&mut self) -> Option<T> {
+        self.head.take().map(|head| {
+            let head = *head;
+            self.head = head.next;
+
+            if self.head.is_none() {
+                self.tail = ptr::null_mut();
+            }
+
+            head.elem
+
+        })
+    }
+    
+    pub fn cut(&mut self, elem:T) {  
+       let mut current = &self.head;
+    
+       while current.is_some() {
+           print!("{:?}", current);
+           current = &current.unwrap().next;
+       } 
+ 
+    }     
+}
+
 
 // linked btree map
 // get key and value
+
