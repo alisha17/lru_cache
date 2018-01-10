@@ -9,7 +9,7 @@ fn main(){
     list.push(3);
     list.push(4);
 
-    list.cut(4);
+    // list.cut(4);
 }
 
 type Link<T> = Option<Box<Node<T>>>;
@@ -22,6 +22,7 @@ pub struct List<T> {
 
 #[derive(Debug)]
 struct Node<T> {
+    prev: *mut Node<T>,
     elem: T,
     next: Link<T>,
 }
@@ -33,6 +34,7 @@ impl<T> List<T> where T: Debug {
 
     pub fn push(&mut self, elem: T) {
         let mut new_tail = Box::new(Node {
+            prev: None.unwrap(),
             elem: elem,
             next: None,
         });
@@ -42,6 +44,7 @@ impl<T> List<T> where T: Debug {
         if !self.tail.is_null() {
             unsafe {
                 (*self.tail).next = Some(new_tail);
+                new_tail.prev = *self.tail;
             }
         } else {
             self.head = Some(new_tail);
@@ -64,20 +67,38 @@ impl<T> List<T> where T: Debug {
         })
     }
     
-    pub fn cut(&mut self, elem:T) {  
-       let mut current = &self.head;
-       let mut tail = &self.tail;
-    
-       while current.is_some() {
-           current = &current.as_ref().unwrap().next;
+    // pub fn cut(&mut self, elem:T) {  
+    //    let mut current = &self.head;
+     
+    //    let mut prev: Option<T> = None;
 
-           match &current.as_ref().elem {
-             Some(elem) => println!("{:?}", elem),
-             None => {},
-           }
-       } 
+    //    println!("Previous element {:?}", prev);
+
+    //    while current.is_some() {
+    //        match current.as_ref() {
+    //          Some(x) => println!("Current element {:?}", x.elem),
+    //          None => {},
+    //        }
+           
+    //        let next = &current.as_ref().unwrap().next;
+
+    //        match next.as_ref() {
+    //          Some(x) => println!("Next element {:?}", x.elem),
+    //          None => println!("Next element None"),
+    //        }
+           
+    //        let prev = &current.as_ref();
+
+    //        match prev {
+    //            Some(x) => println!("Previous element {:?}", prev),
+    //            None => {}
+    //        }
+
+    //        current = &current.as_ref().unwrap().next;     
+
+    //    } 
  
-    }     
+    // }     
 }
 
 
