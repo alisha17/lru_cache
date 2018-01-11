@@ -34,7 +34,7 @@ impl<T> List<T> where T: Debug {
 
     pub fn push(&mut self, elem: T) {
         let mut new_tail = Box::new(Node {
-            prev: None.unwrap(),
+            prev: ptr::null_mut(),
             elem: elem,
             next: None,
         });
@@ -43,8 +43,8 @@ impl<T> List<T> where T: Debug {
 
         if !self.tail.is_null() {
             unsafe {
+                new_tail.prev = self.tail;
                 (*self.tail).next = Some(new_tail);
-                new_tail.prev = *self.tail;
             }
         } else {
             self.head = Some(new_tail);
@@ -57,6 +57,13 @@ impl<T> List<T> where T: Debug {
         self.head.take().map(|head| {
             let head = *head;
             self.head = head.next;
+
+            while self.head.is_some() {
+                match self.head.as_ref() {
+                    Some(x) => x.prev = ptr::null_mut(),
+                    None => {},
+                }
+            }
 
             if self.head.is_none() {
                 self.tail = ptr::null_mut();
