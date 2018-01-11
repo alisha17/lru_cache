@@ -58,12 +58,11 @@ impl<T> List<T> where T: Debug {
             let head = *head;
             self.head = head.next;
 
-            while self.head.is_some() {
-                match self.head.as_ref() {
-                    Some(x) => x.prev = ptr::null_mut(),
-                    None => {},
-                }
+            match self.head.as_ref() {
+                Some(x) => x.prev = ptr::null_mut(),
+                None => {},
             }
+            
 
             if self.head.is_none() {
                 self.tail = ptr::null_mut();
