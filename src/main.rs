@@ -64,20 +64,28 @@ impl<T> List<T> where T: Debug {
         })
     }
 
-    // pub fn cut(&mut self, elem:T) {
-    //     let mut current = self.head;
-    //     let mut last_elem = self.tail;
+    pub fn cut(&mut self, elem:T) {
+        let mut current = self.head;
+        let mut last_elem = self.tail;
 
-    //     while current.is_some() {
-    //         if current.as_ref().elem == elem {
-    //             let current_elem = current.as_ref().elem;
-    //             (current_elem.prev).next = current_elem.next;
-    //             (current_elem.next).prev = current_elem.prev;
-    //             current_elem.next = None;
-    //             current_elem.prev = self.tail;
-    //         }
-    //     }
-    // }
+        while current.is_some() {
+            match current.as_ref {
+                Some(x) => {
+                    if x.elem == elem {
+                        let current_elem = current.as_ref();
+                        
+                    }
+                }
+            }
+            if current.as_ref().elem == elem {
+                let current_elem = current.as_ref().elem;
+                (current_elem.prev).next = current_elem.next;
+                (current_elem.next).prev = current_elem.prev;
+                current_elem.next = None;
+                current_elem.prev = self.tail;
+            }
+        }
+    }
     
 }
 #[cfg(test)]
