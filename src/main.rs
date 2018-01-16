@@ -58,12 +58,11 @@ impl<T> List<T> where T: Debug {
             let head = *head;
             self.head = head.next;
 
-            match self.head.as_ref() {
+            match self.head.as_mut() {
                 Some(x) => x.prev = ptr::null_mut(),
                 None => {},
             }
             
-
             if self.head.is_none() {
                 self.tail = ptr::null_mut();
             }
@@ -72,39 +71,22 @@ impl<T> List<T> where T: Debug {
 
         })
     }
+
+    pub fn cut(&mut self, elem:T) {
+        let mut current = self.head;
+        let mut last_elem = self.tail
+
+        while current.is_some() {
+            if current.as_ref().elem == elem {
+                current_elem = current.as_ref().elem;
+                (current_elem.prev).next = current_elem.next;
+                (current_elem.next).prev = current_elem.prev;
+                current_elem.next = None;
+                //current_elem.prev = 
+            }
+        }
+    }
     
-    // pub fn cut(&mut self, elem:T) {  
-    //    let mut current = &self.head;
-     
-    //    let mut prev: Option<T> = None;
-
-    //    println!("Previous element {:?}", prev);
-
-    //    while current.is_some() {
-    //        match current.as_ref() {
-    //          Some(x) => println!("Current element {:?}", x.elem),
-    //          None => {},
-    //        }
-           
-    //        let next = &current.as_ref().unwrap().next;
-
-    //        match next.as_ref() {
-    //          Some(x) => println!("Next element {:?}", x.elem),
-    //          None => println!("Next element None"),
-    //        }
-           
-    //        let prev = &current.as_ref();
-
-    //        match prev {
-    //            Some(x) => println!("Previous element {:?}", prev),
-    //            None => {}
-    //        }
-
-    //        current = &current.as_ref().unwrap().next;     
-
-    //    } 
- 
-    // }     
 }
 
 
