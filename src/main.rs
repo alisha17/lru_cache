@@ -1,15 +1,7 @@
 use std::ptr;
-use std::fmt;
 use std::fmt::Debug;
 
 fn main(){
-    let mut list = List::new();
-
-    list.push(2);
-    list.push(3);
-    list.push(4);
-
-    // list.cut(4);
 }
 
 type Link<T> = Option<Box<Node<T>>>;
@@ -72,21 +64,46 @@ impl<T> List<T> where T: Debug {
         })
     }
 
-    pub fn cut(&mut self, elem:T) {
-        let mut current = self.head;
-        let mut last_elem = self.tail
+    // pub fn cut(&mut self, elem:T) {
+    //     let mut current = self.head;
+    //     let mut last_elem = self.tail;
 
-        while current.is_some() {
-            if current.as_ref().elem == elem {
-                current_elem = current.as_ref().elem;
-                (current_elem.prev).next = current_elem.next;
-                (current_elem.next).prev = current_elem.prev;
-                current_elem.next = None;
-                //current_elem.prev = 
-            }
-        }
-    }
+    //     while current.is_some() {
+    //         if current.as_ref().elem == elem {
+    //             let current_elem = current.as_ref().elem;
+    //             (current_elem.prev).next = current_elem.next;
+    //             (current_elem.next).prev = current_elem.prev;
+    //             current_elem.next = None;
+    //             current_elem.prev = self.tail;
+    //         }
+    //     }
+    // }
     
+}
+#[cfg(test)]
+mod tests {
+
+    use super::List;
+
+    #[test]
+    fn test_push() {
+
+       let mut list = List::<u32>::new();
+
+        // Check empty list behaves right
+        assert_eq!(list.pop(), None);
+
+        list.push(1);
+        list.push(2);
+        list.push(3);
+
+        // Check normal removal
+        assert_eq!(list.pop(), Some(1));
+        assert_eq!(list.pop(), Some(2));
+        assert_eq!(list.pop(), Some(3));        
+        assert_eq!(list.pop(), None);
+
+    }
 }
 
 
