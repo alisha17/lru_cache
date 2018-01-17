@@ -70,18 +70,21 @@ impl<T> List<T> where T: Debug {
 
         while current.is_some() {
             match current.as_ref() {
+                Some(x) => {
                     if x.elem == elem {
-                        let current_elem = current.as_ref();
-                         (current_elem.prev).next = current_elem.next;
-                         (current_elem.next).prev = current_elem.prev;
-                         current_elem.next = None;
-                         current_elem.prev = self.tail;
+                        (x.prev).next = x.next;
+                        (x.next).prev = x.prev;
+                        x.next = None;
+                        x.prev = self.tail;
                     }
+                }
+
+                None => {},
+                    
                 }
             }
         }
-    }  
-}
+    }
 
 
 #[cfg(test)]
