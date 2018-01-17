@@ -23,13 +23,13 @@ impl<T> List<T> where T: Debug+PartialEq {
     }
 
     pub fn push(&mut self, elem: T) {
-        let mut new_tail_box = Box::new(Node {
+        let new_tail_box = Box::new(Node {
             prev: ptr::null_mut(),
             elem: elem,
             next: ptr::null_mut(),
         });
 
-        let new_tail = Box::into_raw(new_tail_box);
+        let new_tail: *mut _ = Box::into_raw(new_tail_box);
 
         if !self.tail.is_null() {
             unsafe {
@@ -37,33 +37,39 @@ impl<T> List<T> where T: Debug+PartialEq {
                 (*self.tail).next = new_tail;
             }
         } else {
-            (*self.head) = new_tail;
+            self.head = new_tail;
         }
 
-        (*self.tail) = new_tail;
+        self.tail = new_tail;
     }
 
     pub fn pop(&mut self) -> T {
+        unsafe{
             (*self.head).prev = ptr::null_mut();
-            
-            if self.head.is_null() {
-                self.tail = ptr::null_mut();
-            }
-            (*self.head).elem
+        }
+
+        let box_head = unsafe {
+            Box::from_raw(self.head)
+        };
+
+        if self.head.is_null() {
+            self.tail = ptr::null_mut();
+        }
+
+        box_head.elem
     }
 
     pub fn cut(&mut self, elem:T) {
-        let mut current = self.head;
-        let mut last_elem = self.tail;
+        let current = self.head;
 
         while !current.is_null() {
-            if (*current).elem == elem {
-                unsafe {
-                   (*(*current).prev).next = (*current).next;
-                   (*(*current).next).prev = (*current).prev;
+            unsafe {
+                if (*current).elem == elem {
+                    (*(*current).prev).next = (*current).next;
+                    (*(*current).next).prev = (*current).prev;
                     (*current).next = ptr::null_mut();
                     (*current).prev = self.tail
-                } 
+                }
             }
         }
     }
