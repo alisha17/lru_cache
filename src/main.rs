@@ -19,7 +19,7 @@ struct Node<T> {
     next: Link<T>,
 }
 
-impl<T> List<T> where T: Debug {
+impl<T> List<T> where T: Debug+PartialEq {
     pub fn new() -> Self {
         List { head: None, tail: ptr::null_mut() }
     }
