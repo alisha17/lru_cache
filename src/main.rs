@@ -43,20 +43,20 @@ impl<T> List<T> where T: Debug+PartialEq {
         self.tail = new_tail;
     }
 
-    pub fn pop(&mut self) -> T {
+    pub fn pop(&mut self) -> Option<T> {
         unsafe{
             (*self.head).prev = ptr::null_mut();
         }
 
-        let box_head = unsafe {
-            Box::from_raw(self.head)
-        };
-
         if self.head.is_null() {
             self.tail = ptr::null_mut();
+            None
         }
-
-        box_head.elem
+        else {
+                let box_head = unsafe { Box::from_raw(self.head) };
+                self.head = box_head.next;
+                Some(box_head.elem)
+        }
     }
 
     pub fn cut(&mut self, elem:T) {
@@ -81,7 +81,7 @@ mod tests {
     use super::List;
 
     #[test]
-    fn test_push() {
+    fn test_push_and_pop() {
 
        let mut list = List::<u32>::new();
 
@@ -90,9 +90,23 @@ mod tests {
         list.push(3);
 
         // Check normal removal
-        assert_eq!(list.pop(), 1);
-        assert_eq!(list.pop(), 2);
-        assert_eq!(list.pop(), 3);        
+        assert_eq!(list.pop(), Some(1));
+        assert_eq!(list.pop(), Some(2));
+        assert_eq!(list.pop(), Some(3));        
+    }
+    
+    #[test]
+    fn test_cut() {
+        let mut list = List::<u32>::new();
+
+        list.push(1);
+        list.push(2);
+        list.push(3);
+
+        list.cut(2);
+
+        assert_eq!(list.pop(), Some(2));
+
     }
 }
 
