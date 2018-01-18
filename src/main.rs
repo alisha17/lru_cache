@@ -11,7 +11,7 @@ pub struct List<T> {
 }
 
 #[derive(Debug)]
-struct Node<T> {
+pub struct Node<T> {
     prev: *mut Node<T>,
     elem: T,
     next: *mut Node<T>,
@@ -60,18 +60,30 @@ impl<T> List<T> where T: Debug+PartialEq {
     }
 
     pub fn cut(&mut self, elem:T) {
-        let current = self.head;
+        let current = self.search(elem);
+
+        unsafe {
+            (*(*current).prev).next = (*current).next;
+            (*(*current).next).prev = (*current).prev;
+            (*current).next = ptr::null_mut();
+            (*current).prev = self.tail;
+        }
+    }
+
+    pub fn search(&mut self, elem:T) -> *mut Node<T>{
+        let mut current = self.head;
 
         while !current.is_null() {
             unsafe {
                 if (*current).elem == elem {
-                    (*(*current).prev).next = (*current).next;
-                    (*(*current).next).prev = (*current).prev;
-                    (*current).next = ptr::null_mut();
-                    (*current).prev = self.tail
+                    return current
+                }
+                else {
+                    current = (*current).next;
                 }
             }
         }
+        ptr::null_mut()
     }
 }
 
@@ -105,7 +117,10 @@ mod tests {
 
         list.cut(2);
 
+        assert_eq!(list.pop(), Some(1));
+        assert_eq!(list.pop(), Some(3));
         assert_eq!(list.pop(), Some(2));
+    
 
     }
 }
