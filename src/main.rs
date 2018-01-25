@@ -64,13 +64,13 @@ impl<T> List<T> where T: Debug+PartialEq {
 
         if self.head == searched_node {
             unsafe {
-            let new_node = self.head;
-            self.head = (*self.head).next;
-            (*self.head).prev = ptr::null_mut();
-            let second_last = self.tail;
-            self.tail = new_node;
-            (*self.tail).prev = second_last;
-            (*self.tail).next = ptr::null_mut();
+                let new_node = self.head;
+                self.head = (*self.head).next;
+                (*self.head).prev = ptr::null_mut();
+                let second_last = self.tail;
+                self.tail = new_node;
+                (*self.tail).prev = second_last;
+                (*self.tail).next = ptr::null_mut();
             }
         }
         else {
