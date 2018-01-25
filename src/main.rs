@@ -53,41 +53,48 @@ impl<T> List<T> where T: Debug+PartialEq {
             None
         }
         else {
-                let box_head = unsafe { Box::from_raw(self.head) };
-                self.head = box_head.next;
-                Some(box_head.elem)
+            let box_head = unsafe { Box::from_raw(self.head) };
+            self.head = box_head.next;
+            Some(box_head.elem)
         }
     }
 
     pub fn cut(&mut self, elem:T) {
-        let current = self.search(elem);
+        let searched_node = self.search(elem);
 
-        if self.head == current {
+        if self.head == searched_node {
             unsafe {
-                let new_node = self.head;
-                self.head = (*self.head).next;
-                (*self.head).prev = ptr::null_mut();
-                let second_last = self.tail;
-                self.tail = new_node;
-                (*self.tail).prev = second_last;
-                (*self.tail).next = ptr::null_mut();
+            let new_node = self.head;
+            self.head = (*self.head).next;
+            (*self.head).prev = ptr::null_mut();
+            let second_last = self.tail;
+            self.tail = new_node;
+            (*self.tail).prev = second_last;
+            (*self.tail).next = ptr::null_mut();
             }
-        else {
-            
-             }
         }
+        else {
+            let mut current = self.head;
 
-        // else {
-
-        // }
-
-        // unsafe {
-        //     (*(*current).prev).next = (*current).next;
-        //     (*(*current).next).prev = (*current).prev;
-        //     (*current).next = ptr::null_mut();
-        //     (*current).prev = self.tail;
-        // }
+            while !current.is_null() {
+                if current == searched_node {
+                    unsafe {
+                        (*(*current).prev).next = (*current).next;
+                        (*(*current).next).prev = (*current).prev;
+                        (*current).next = ptr::null_mut();
+                        (*current).prev = self.tail;
+                        self.tail = current;
+                    }
+                }
+                else {
+                    unsafe {
+                        current = (*current).next;
+                    }
+                }
+            }
+        }
     }
+    
 
     pub fn search(&mut self, elem:T) -> *mut Node<T>{
         let mut current = self.head;
