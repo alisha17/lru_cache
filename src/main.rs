@@ -80,28 +80,24 @@ impl<T> List<T> where T: Debug+PartialEq {
             }
             else if self.tail == searched_node {}
             else {
-                let mut current = self.head;
+                unsafe {
+                    let mut current = (*self.head).next;
 
-                while !current.is_null() {
-                    if current == searched_node {
-                        unsafe { 
-                            // Deleting the node from the list
-                            (*(*current).next).prev = (*current).prev;
-                            (*(*current).prev).next = (*current).next;
-                            (*current).prev = self.tail;
-                            (*self.tail).next = current;
-                            (*current).next = ptr::null_mut();
-                            self.tail = current;
-                        }
-                    }
-                    else {
-                        unsafe {
-                            current = (*current).next;
-                        }
-                    }
+                if current == searched_node {
+                        // Deleting the node from the list
+                    (*(*current).next).prev = (*current).prev;
+                    (*(*current).prev).next = (*current).next;
+                    (*current).prev = self.tail;
+                    (*self.tail).next = current;
+                    (*current).next = ptr::null_mut();
+                    self.tail = current;
                 }
+                else {
+                    current = (*current).next;
+                }   
             }
         }
+    }
     }
     
 
@@ -157,8 +153,6 @@ mod tests {
         assert_eq!(list.pop(), Some(1));
         assert_eq!(list.pop(), Some(3));
         assert_eq!(list.pop(), Some(2));
-    
-
     }
 }
 
