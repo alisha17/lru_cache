@@ -62,33 +62,42 @@ impl<T> List<T> where T: Debug+PartialEq {
     pub fn cut(&mut self, elem:T) {
         let searched_node = self.search(elem);
 
-        if self.head == searched_node {
-            unsafe {
-                let new_node = self.head;
-                self.head = (*self.head).next;
-                (*self.head).prev = ptr::null_mut();
-                let second_last = self.tail;
-                self.tail = new_node;
-                (*self.tail).prev = second_last;
-                (*self.tail).next = ptr::null_mut();
-            }
+        if searched_node == ptr::null_mut() {
+            println!("The element does not exist!");
         }
         else {
-            let mut current = self.head;
-
-            while !current.is_null() {
-                if current == searched_node {
-                    unsafe {
-                        (*(*current).prev).next = (*current).next;
-                        (*(*current).next).prev = (*current).prev;
-                        (*current).next = ptr::null_mut();
-                        (*current).prev = self.tail;
-                        self.tail = current;
-                    }
+            if self.head == searched_node {
+                unsafe {
+                    let new_node = self.head;
+                    self.head = (*self.head).next;
+                    (*self.head).prev = ptr::null_mut();
+                    let second_last = self.tail;
+                    self.tail = new_node;
+                    (*self.tail).prev = second_last;
+                    (*self.tail).next = ptr::null_mut();
+                    (*second_last).next = new_node;
                 }
-                else {
-                    unsafe {
-                        current = (*current).next;
+            }
+            else if self.tail == searched_node {}
+            else {
+                let mut current = self.head;
+
+                while !current.is_null() {
+                    if current == searched_node {
+                        unsafe { 
+                            // Deleting the node from the list
+                            (*(*current).next).prev = (*current).prev;
+                            (*(*current).prev).next = (*current).next;
+                            (*current).prev = self.tail;
+                            (*self.tail).next = current;
+                            (*current).next = ptr::null_mut();
+                            self.tail = current;
+                        }
+                    }
+                    else {
+                        unsafe {
+                            current = (*current).next;
+                        }
                     }
                 }
             }
@@ -127,10 +136,12 @@ mod tests {
         list.push(2);
         list.push(3);
 
+
         // Check normal removal
         assert_eq!(list.pop(), Some(1));
         assert_eq!(list.pop(), Some(2));
-        assert_eq!(list.pop(), Some(3));        
+        assert_eq!(list.pop(), Some(3)); 
+               
     }
     
     #[test]
