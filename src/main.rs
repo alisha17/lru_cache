@@ -26,7 +26,7 @@ pub struct Node<K, V> {
 }
 
 
-impl<K, V> Cache<K, V> where K:Hash, V: Debug+PartialEq {
+impl<K, V> Cache<K, V> where K:Hash+Copy, V: Debug+PartialEq {
 
     // Create a new LRU cache
     pub fn new(capacity: usize) -> Self {
@@ -38,30 +38,10 @@ impl<K, V> Cache<K, V> where K:Hash, V: Debug+PartialEq {
         }
     }
 
-    pub fn cleanup(&mut self, capacity: usize) {
-        while self.map.len() >= self.capacity {
-            let popped = self.pop();
-
-            match popped {
-                Some(x) => {
-                   let mut hasher = DefaultHasher::new();
-                   x.hash(&mut hasher);
-                   let hash = hasher.finish();
-
-                   self.map.remove(&hash);
-                },
-
-                None => {}
-            }
-        }
-    }
-
     // Push a new element to the cache
     pub fn push(&mut self, key: K , value: V) {
 
-        let mut hasher = DefaultHasher::new();
-        key.hash(&mut hasher);
-        let hash = hasher.finish();
+        let hash = self.key_to_hash(&key);
 
         let new_tail_box = Box::new(Node {
             prev: ptr::null_mut(),
@@ -80,53 +60,51 @@ impl<K, V> Cache<K, V> where K:Hash, V: Debug+PartialEq {
             let capacity = self.capacity;
             self.cleanup(capacity);
         }
-        else {
-            //If the cache is non-empty
-            if !self.tail.is_null() {
-                unsafe {
-                    (*new_tail).prev = self.tail;
-                    (*self.tail).next = new_tail;
-                }
-            } 
-            else {
-                // If the cache is empty
-                self.head = new_tail;
+        //If the cache is non-empty
+        if !self.tail.is_null() {
+            unsafe {
+                (*new_tail).prev = self.tail;
+                (*self.tail).next = new_tail;
             }
+        } 
+        else {
+            // If the cache is empty
+            self.head = new_tail;
         }
 
         self.tail = new_tail;
     }
 
     // Pop the last element from the cache
-    pub fn pop(&mut self) -> Option<K> {
-        unsafe{
-            (*self.head).prev = ptr::null_mut();
-        }
-
+    pub fn pop(&mut self) -> Option<(K, V)> {
         if self.head.is_null() {
             self.tail = ptr::null_mut();
             None
         }
+
         else {
             let box_head = unsafe { Box::from_raw(self.head) };
             self.head = box_head.next;
+            if !self.head.is_null() {     
+                unsafe{
+                    (*self.head).prev = ptr::null_mut();
+                }
+            }
+            else {
+                self.tail = ptr::null_mut();
+            }
+            
             self.pop_from_map(box_head.key_hash);
-            Some(box_head.key)
-        }
+            Some((box_head.key, box_head.value))     
+    }
     }
 
-     pub fn pop_from_map(&mut self, key_hash: u64) {
-        let value_node = self.map.remove(&key_hash);
-
-        unsafe { Box::from_raw(value_node.unwrap()) };
-     }
-
-
+    // Cut the node if the key is present in the map and place it at the front (i.e. 
+    // recently used)
     pub fn cut(&mut self, key: K) {
         let searched_node = self.search(key);
 
         if searched_node == ptr::null_mut() {
-            println!("The element does not exist!");
         }
         else {
             if self.head == searched_node {
@@ -162,7 +140,50 @@ impl<K, V> Cache<K, V> where K:Hash, V: Debug+PartialEq {
             }
         }
     }
+    
+    // Search the LRU cache and if the key is present, cut and place the record at the end
+    pub fn search_lru(&mut self, key: K) {
+        let searched_node = self.search(key);
+        if !searched_node.is_null() {
+            self.cut(key);
+        }
+    }
 
+    // HELPER FUNCTIONS
+    
+    // In case the cache is full, cleanup() pops the least recently used node if length
+    // of BTreemap is greater than the length of the cache and removes it from the map
+    pub fn cleanup(&mut self, capacity: usize) {
+        while self.map.len() > self.capacity {
+            let popped = self.pop();
+
+            match popped {
+                Some(x) => {
+                   let hashed = self.key_to_hash(&x.0);
+                   self.map.remove(&hashed);
+                },
+
+                None => {}
+            }
+        }
+    }
+ 
+    // Converts key to hash
+    pub fn key_to_hash(&mut self, key: &K) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        key.hash(&mut hasher);
+        hasher.finish()
+    }
+
+    // Pops the value from the BTreemap
+    pub fn pop_from_map(&mut self, key_hash: u64) {
+        let value_node = self.map.remove(&key_hash);
+
+        unsafe { Box::from_raw(value_node.unwrap()) };
+    }
+
+    // Search if the key is present in the cache and returns the value, i.e. 
+    // the node
     pub fn search(&mut self, key: K) -> *mut Node<K, V>{
         let mut hasher = DefaultHasher::new();
         key.hash(&mut hasher);
@@ -175,6 +196,8 @@ impl<K, V> Cache<K, V> where K:Hash, V: Debug+PartialEq {
         }
     }
 }
+
+
 
 #[cfg(test)]
 mod tests {
@@ -194,115 +217,113 @@ mod tests {
         list.push(30, 3);
 
         // Check normal removal
-        assert_eq!(list.pop(), Some(1));
-        assert_eq!(list.pop(), Some(2));
-        assert_eq!(list.pop(), Some(3));        
+        assert_eq!(list.pop(), Some((10, 1)));
+        assert_eq!(list.pop(), Some((20, 2)));
+        assert_eq!(list.pop(), Some((30, 3)));        
     }
 
-    // #[test]
-    // fn test_push_cache_full() {
+    #[test]
+    fn test_push_cache_full() {
 
-    //     let mut list = Cache::<u32, u32>::new(3);
+        let mut list = Cache::<u32, u32>::new(3);
 
-    //     list.push(10, 1);
-    //     list.push(20, 2);
-    //     list.push(30, 3);
-    //     list.push(40, 4);
+        list.push(10, 1);
+        list.push(20, 2);
+        list.push(30, 3);
+        list.push(40, 4);
 
-    //     // Check normal removal
-    //     assert_eq!(list.pop(), Some(2));
-    //     assert_eq!(list.pop(), Some(3));
-    //     assert_eq!(list.pop(), Some(4));
-    // }
+        // Check normal removal
+        // assert_eq!(list.pop(), Some((10, 1)));
+        assert_eq!(list.pop(), Some((20, 2)));
+        assert_eq!(list.pop(), Some((30, 3)));
+        assert_eq!(list.pop(), Some((40, 4)));
+    }
 
-    // #[test]
-    // fn test_hash_not_equal() {
+    #[test]
+    fn test_hash_not_equal() {
 
-    //     let mut hasher = DefaultHasher::new();
-    //     hasher.write_u64(1);
-    //     let hashed_key = hasher.finish();
+        let mut hasher = DefaultHasher::new();
+        hasher.write_u64(1);
+        let hashed_key = hasher.finish();
 
-    //     hasher.write_u64(2);
-    //     let hashed_key2 = hasher.finish();
+        hasher.write_u64(2);
+        let hashed_key2 = hasher.finish();
 
-    //     assert_ne!(hashed_key, hashed_key2);
-    // }
+        assert_ne!(hashed_key, hashed_key2);
+    }
 
-    // #[test]
-    // fn test_hash_equal() {
+    #[test]
+    fn test_search_not_equal_key() {
 
-    //     let mut hasher = DefaultHasher::new();
-    //     hasher.write_u64(1);
-    //     let hashed_key = hasher.finish();
+        let mut cache = Cache::<u32, u32>::new(20);
 
-    //     let mut hasher2 = DefaultHasher::new();
-    //     hasher2.write_u64(1);
-    //     let hashed_key2 = hasher2.finish();
+        cache.push(10, 1);
+        cache.push(20, 2);
+        cache.push(30, 3);
 
-    //     assert_eq!(hashed_key, hashed_key2);
-    // }
+        assert_ne!(cache.search(10), ptr::null_mut());
+    }
 
-    // #[test]
-    // fn test_search_not_equal_key() {
+    #[test]
+    fn test_cut_first_elem() {
 
-    //     let mut cache = Cache::<u32, u32>::new(20);
+        let mut cache = Cache::<u32, u32>::new(20);
 
-    //     cache.push(10, 1);
-    //     cache.push(20, 2);
-    //     cache.push(30, 3);
+        cache.push(10, 1);
+        cache.push(20, 2);
+        cache.push(30, 3);
 
-    //     assert_ne!(cache.search(10), ptr::null_mut());
-    // }
+        cache.cut(10);
 
-    // #[test]
-    // fn test_cut_first_elem() {
+        assert_eq!(cache.pop(), Some((20, 2)));
+        assert_eq!(cache.pop(), Some((30, 3)));
+        assert_eq!(cache.pop(), Some((10, 1)));
+    }
 
-    //     let mut cache = Cache::<u32, u32>::new(20);
+    #[test]
+    fn test_cut_last_elem() {
 
-    //     cache.push(10, 1);
-    //     cache.push(20, 2);
-    //     cache.push(30, 3);
+        let mut cache = Cache::<u32, u32>::new(20);
 
-    //     cache.cut(10);
+        cache.push(10, 1);
+        cache.push(20, 2);
+        cache.push(30, 3);
 
-    //     assert_eq!(cache.pop(), Some(2));
-    //     assert_eq!(cache.pop(), Some(3));
-    //     assert_eq!(cache.pop(), Some(1));
+        cache.cut(30);
 
-    // }
+        assert_eq!(cache.pop(), Some((10, 1)));
+        assert_eq!(cache.pop(), Some((20, 2)));
+        assert_eq!(cache.pop(), Some((30, 3)));
+    }  
 
-    // #[test]
-    // fn test_cut_last_elem() {
+    #[test]
+    fn test_cut() {
 
-    //     let mut cache = Cache::<u32, u32>::new(20);
+        let mut cache = Cache::<u32, u32>::new(20);
 
-    //     cache.push(10, 1);
-    //     cache.push(20, 2);
-    //     cache.push(30, 3);
+        cache.push(10, 1);
+        cache.push(20, 2);
+        cache.push(30, 3);
 
-    //     cache.cut(30);
+        cache.cut(20);
 
-    //     assert_eq!(cache.pop(), Some(1));
-    //     assert_eq!(cache.pop(), Some(2));
-    //     assert_eq!(cache.pop(), Some(3));
+        assert_eq!(cache.pop(), Some((10, 1)));
+        assert_eq!(cache.pop(), Some((30, 3)));
+        assert_eq!(cache.pop(), Some((20, 2)));
+    }
 
-    // }  
+    #[test]
+    fn test_search_lru() {
+        let mut cache = Cache::<u32, u32>::new(20);
 
-    // #[test]
-    // fn test_cut() {
+        cache.push(10, 1);
+        cache.push(20, 2);
+        cache.push(30, 3);
 
-    //     let mut cache = Cache::<u32, u32>::new(20);
+        cache.search_lru(20);
 
-    //     cache.push(10, 1);
-    //     cache.push(20, 2);
-    //     cache.push(30, 3);
-
-    //     cache.cut(20);
-
-    //     assert_eq!(cache.pop(), Some(1));
-    //     assert_eq!(cache.pop(), Some(3));
-    //     assert_eq!(cache.pop(), Some(2));
-
-    // }
+        assert_eq!(cache.pop(), Some((10, 1)));
+        assert_eq!(cache.pop(), Some((30, 3)));
+        assert_eq!(cache.pop(), Some((20, 2)));
+    }
 }
-
