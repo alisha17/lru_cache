@@ -77,26 +77,29 @@ impl<K, V> Cache<K, V> where K:Hash+Copy, V: Debug+PartialEq {
 
     // Pop the last element from the cache
     pub fn pop(&mut self) -> Option<(K, V)> {
-        if self.head.is_null() {
-            self.tail = ptr::null_mut();
-            None
-        }
 
-        else {
-            let box_head = unsafe { Box::from_raw(self.head) };
-            self.head = box_head.next;
-            if !self.head.is_null() {     
-                unsafe{
-                    (*self.head).prev = ptr::null_mut();
-                }
-            }
-            else {
+            if self.head.is_null() {
                 self.tail = ptr::null_mut();
+                None
             }
-            
-            self.pop_from_map(box_head.key_hash);
-            Some((box_head.key, box_head.value))     
-    }
+
+            else {
+
+                let box_head = unsafe { Box::from_raw(self.head) };
+                self.head = box_head.next;
+                if !self.head.is_null() {     
+                    unsafe{
+                        (*self.head).prev = ptr::null_mut();
+                    }
+                }
+                else
+                {
+                    self.tail = ptr::null_mut();
+                }
+                
+                self.pop_from_map(box_head.key_hash);
+                Some((box_head.key, box_head.value))     
+        }
     }
 
     // Cut the node if the key is present in the map and place it at the front (i.e. 
@@ -135,7 +138,7 @@ impl<K, V> Cache<K, V> where K:Hash+Copy, V: Debug+PartialEq {
                     }
                     else {
                         current = (*current).next;
-                    }   
+                  }   
                 }
             }
         }
@@ -195,6 +198,15 @@ impl<K, V> Cache<K, V> where K:Hash+Copy, V: Debug+PartialEq {
             None => ptr::null_mut()
         }
     }
+ 
+    // Verify the state of the cache after every operation; more
+    // conditons to be added
+    pub fn verify(&mut self) {
+        unsafe {
+            assert_eq!((*self.head).prev, ptr::null_mut());
+            assert_eq!((*self.tail).next, ptr::null_mut());
+        }
+    } 
 }
 
 
@@ -207,20 +219,6 @@ mod tests {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::Hasher;
 
-    #[test]
-    fn test_push_and_pop() {
-        
-        let mut list = Cache::<u32, u32 >::new(20);
-
-        list.push(10, 1);
-        list.push(20, 2);
-        list.push(30, 3);
-
-        // Check normal removal
-        assert_eq!(list.pop(), Some((10, 1)));
-        assert_eq!(list.pop(), Some((20, 2)));
-        assert_eq!(list.pop(), Some((30, 3)));        
-    }
 
     #[test]
     fn test_push_cache_full() {
@@ -232,8 +230,6 @@ mod tests {
         list.push(30, 3);
         list.push(40, 4);
 
-        // Check normal removal
-        // assert_eq!(list.pop(), Some((10, 1)));
         assert_eq!(list.pop(), Some((20, 2)));
         assert_eq!(list.pop(), Some((30, 3)));
         assert_eq!(list.pop(), Some((40, 4)));
