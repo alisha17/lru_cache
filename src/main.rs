@@ -14,7 +14,9 @@ use std::hash::Hash;
 // a good idea because the act of computing that value is very likely to be
 // faster than our lookups.
 pub struct Cache<K, V> {
+    // Head is "least used"
     head: *mut Node<K, V>,
+    // Tail is "most recently used"
     tail: *mut Node<K, V>,
     // Store the nodes (pointers)
     map: BTreeMap<u64, *mut Node<K, V>>,
@@ -211,14 +213,13 @@ impl<K, V> Cache<K, V> where
         }
     }
 
-    // Cut the node if the key is present in the map and place it at the front (i.e. 
+    // Cut the node if the key is present in the map and place it at the tail (i.e. 
     // recently used)
     fn cut(&mut self, key: &K) {
         let searched_node = self.search(key);
 
         if searched_node == ptr::null_mut() {
-        }
-        else {
+        } else {
             if self.head == searched_node {
                 unsafe {
                     let new_node = self.head;
@@ -350,7 +351,7 @@ mod tests {
 
     macro_rules! assert_cache_latest {
         ( $c:expr, $v:expr ) => {
-            let p = $c.head;
+            let p = $c.tail;
             assert!(!p.is_null());
             // Check that our node content makes sense.
             unsafe {
@@ -391,6 +392,11 @@ mod tests {
         cache.verify();
         assert_cache_present!(cache, 2);
         assert_cache_latest!(cache, 2);
+
+        // Now search our original value again. It should now update the cache
+        // head.
+
+
     }
 
     /*
